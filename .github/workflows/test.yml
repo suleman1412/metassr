@@ -13,7 +13,12 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+        fail-fast: false
+        matrix:
+          os: [ubuntu-latest, macos-latest] # TODO: , windows-latest]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
