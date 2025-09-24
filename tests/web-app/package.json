@@ -6,8 +6,8 @@
   "scripts": {
     "build": "../../target/debug/metassr --debug-mode=metacall build",
     "build:ssg": "../../target/debug/metassr --debug-mode=metacall build -t ssg",
-    "run": "../../target/debug/metassr --debug-mode=metacall run ",
-    "run:ssg": "../../target/debug/metassr --debug-mode=metacall run --serve"
+    "start": "../../target/debug/metassr --debug-mode=metacall run",
+    "start:ssg": "../../target/debug/metassr --debug-mode=metacall run --serve"
   },
   "devDependencies": {
     "@rspack/core": "^0.7.5",

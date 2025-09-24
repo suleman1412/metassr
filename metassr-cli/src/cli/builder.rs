@@ -27,6 +27,7 @@ impl Exec for Builder {
     fn exec(&self) -> anyhow::Result<()> {
         let _metacall = initialize().unwrap();
         let instant = Instant::now();
+
         {
             let instant = Instant::now();
 
@@ -62,13 +63,11 @@ impl Exec for Builder {
             );
         }
 
-        if (_metacall.0)() == 0 {
-            info!(
-                target = "builder",
-                message = "Building is completed",
-                time = format!("{}ms", instant.elapsed().as_millis())
-            );
-        }
+        info!(
+            target = "builder",
+            message = "Building is completed",
+            time = format!("{}ms", instant.elapsed().as_millis())
+        );
 
         Ok(())
     }
