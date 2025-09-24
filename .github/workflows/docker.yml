@@ -13,4 +13,4 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Build
-        run: docker build -t metacall/metassr:dev -f Docker.dev .
+        run: docker build -t metacall/metassr:dev -f Dockerfile.dev .
