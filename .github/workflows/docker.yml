@@ -7,7 +7,6 @@ on:
     branches: [ "master" ]
   workflow_dispatch:
 
-name: Docker
 jobs:
   docker:
     runs-on: ubuntu-latest
