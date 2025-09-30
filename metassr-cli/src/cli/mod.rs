@@ -53,7 +53,7 @@ pub enum Commands {
         out_dir: String,
 
         /// The type of build to perform. Choose between SSR (Server-Side Rendering) and SSG (Static Site Generation).
-        #[arg(short = 't', long = "type", default_value_t = BuildingType::SSR)]
+        #[arg(short = 't', long = "type", default_value_t = BuildingType::ServerSideRendering)]
         build_type: BuildingType,
     },
 
