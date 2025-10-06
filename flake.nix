@@ -38,6 +38,8 @@
             nodejs_22
             # dev tools
             git curl
+
+            less
           ];
 
           LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
