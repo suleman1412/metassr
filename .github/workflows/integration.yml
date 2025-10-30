@@ -54,7 +54,7 @@ jobs:
         run: |
           npm install
           npm run build:debug
-          npm start:debug &
+          npm run start:debug &
           sleep 10
           response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
           if [ "$response" -ne 200 ]; then
