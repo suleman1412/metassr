@@ -9,7 +9,7 @@ pub use creator::*;
 pub use dev::*;
 pub use runner::*;
 
-use clap::{command, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(

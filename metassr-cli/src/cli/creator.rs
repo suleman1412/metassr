@@ -72,7 +72,7 @@ impl Exec for Creator {
             &self.project_name,
             &self.version,
             &self.description,
-            &self.template.as_str(),
+            self.template.as_str(),
         )
         .generate()
         {
