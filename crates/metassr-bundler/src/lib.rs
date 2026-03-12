@@ -16,27 +16,13 @@ use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_fs::{ WritableFileSystem, NativeFileSystem };
 
-/// A web bundler that invokes the `web_bundling` function from the Node.js `bundle.js` script
-/// using MetaCall. It is designed to bundle web resources like JavaScript and TypeScript files
-/// by calling a custom `rspack` configuration.
-///
-/// The `exec` function blocks the execution until the bundling process completes.
 #[derive(Debug)]
 pub struct WebBundler<'a> {
-    /// A map containing the source entry points for bundling.
-    /// The key represents the entry name, and the value is the file path.
     pub targets: HashMap<String, &'a Path>,
-    /// The output directory where the bundled files will be stored.
     pub dist_path: &'a Path,
 }
 
 impl<'a> WebBundler<'a> {
-    /// Creates a new `WebBundler` instance.
-    ///
-    /// - `targets`: A HashMap where the key is a string representing an entry point, and the value is the file path.
-    /// - `dist_path`: The path to the directory where the bundled output should be saved.
-    ///
-    /// Returns a `WebBundler` struct.
     pub fn new<S>(targets: &'a HashMap<String, String>, dist_path: &'a S) -> Result<Self>
     where
         S: AsRef<OsStr> + ?Sized,
@@ -66,15 +52,6 @@ impl<'a> WebBundler<'a> {
         })
     }
 
-    /// Executes the bundling process by invoking the `web_bundling` function from `bundle.js` via MetaCall.
-    ///
-    /// It checks if the bundling script has been loaded, then calls the function and waits for the
-    /// bundling to complete, either resolving successfully or logging an error.
-    ///
-    /// # Errors
-    ///
-    /// This function returns an `Err` if the bundling script cannot be loaded or if bundling fails.
-    /// This function returns an `Err` if bundling fails.
     pub fn exec(&self) -> Result<()> {
         match tokio::runtime::Handle::try_current() {
             Ok(handle) => match handle.runtime_flavor() {
@@ -256,7 +233,6 @@ mod tests {
     fn invalid_target_fails() {
         clean();
         let targets = HashMap::from([("invalid_path.tsx".to_owned(), "invalid_path".to_owned())]);
-
         let bundler = WebBundler::new(&targets, "tests/dist");
         assert!(bundler.is_err());
     }
