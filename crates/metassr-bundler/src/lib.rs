@@ -1,19 +1,4 @@
 use anyhow::{anyhow, Result};
-
-
-// use lazy_static::lazy_static;
-// use metacall::{load, metacall, MetaCallFuture, MetaCallValue};
-// use metassr_utils::checker::CheckerState;
-// use std::{
-//     any::Any,
-//     collections::HashMap,
-//     ffi::OsStr,
-//     marker::Sized,
-//     path::Path,
-//     sync::{Arc, Condvar, Mutex},
-// };
-
-// use tracing::error;
 #[macro_use]
 extern crate serde_json;
 
@@ -32,31 +17,6 @@ use rspack_core::{Compiler, Experiments, Filename, PublicPath, LibraryOptions,
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_fs::{ WritableFileSystem, NativeFileSystem };
-
-// lazy_static! {
-//     /// A detector for if the bundling script `./bundle.js` is loaded or not. It is used to solve multiple loading script error in metacall.
-//     static ref IS_BUNDLING_SCRIPT_LOADED: Mutex<CheckerState> = Mutex::new(CheckerState::default());
-
-//     /// A simple checker to check if the bundling function is done or not. It is used to block the program until bundling done.
-//     static ref IS_COMPILATION_WAIT: Arc<CompilationWait> = Arc::new(CompilationWait::default());
-// }
-// static BUILD_SCRIPT: &str = include_str!("./bundle.js");
-// const BUNDLING_FUNC: &str = "web_bundling";
-
-// /// A simple struct for compilation wait of the bundling function.
-// struct CompilationWait {
-//     checker: Mutex<CheckerState>,
-//     cond: Condvar,
-// }
-
-// impl Default for CompilationWait {
-//     fn default() -> Self {
-//         Self {
-//             checker: Mutex::new(CheckerState::default()),
-//             cond: Condvar::new(),
-//         }
-//     }
-// }
 
 /// A web bundler that invokes the `web_bundling` function from the Node.js `bundle.js` script
 /// using MetaCall. It is designed to bundle web resources like JavaScript and TypeScript files
@@ -215,93 +175,8 @@ impl<'a> WebBundler<'a> {
         
         compiler.build().await.map_err(|e| anyhow!("Build failed: {:?}", e))?;
 
-        // let errors: Vec<_> = compiler.compilation.get_errors().collect();
-        // if !errors.is_empty() {
-        //     println!("{:#?}", errors);
-        //     return Err(anyhow!("Compilation errors: {:?}", errors));
-        // }
         Ok(())
     }
-
-    // /// Executes the bundling process by invoking the `web_bundling` function from `bundle.js` via MetaCall.
-    // ///
-    // /// It checks if the bundling script has been loaded, then calls the function and waits for the
-    // /// bundling to complete, either resolving successfully or logging an error.
-    // ///
-    // /// # Errors
-    // ///
-    // /// This function returns an `Err` if the bundling script cannot be loaded or if bundling fails.
-    // pub fn exec(&self) -> Result<()> {
-    //     // Lock the mutex to check if the bundling script is already loaded
-    //     let mut guard = IS_BUNDLING_SCRIPT_LOADED.lock().unwrap();
-    //     if !guard.is_true() {
-    //         // If not loaded, attempt to load the script into MetaCall
-    //         // println!("{:?}", BUILD_SCRIPT);
-    //         if let Err(e) = load::from_memory(load::Tag::NodeJS, BUILD_SCRIPT, None) {
-    //             return Err(anyhow!("Cannot load bundling script: {e:?}"));
-    //         }
-    //         // Mark the script as loaded
-    //         guard.make_true();
-    //     }
-    //     // Drop the lock on the mutex as it's no longer needed
-    //     drop(guard);
-
-    //     // Resolve callback when the bundling process is completed successfully
-    //     fn resolve(
-    //         result: Box<dyn MetaCallValue>,
-    //         _: Option<Box<dyn Any>>,
-    //     ) -> Box<dyn MetaCallValue> {
-    //         let compilation_wait = &*Arc::clone(&IS_COMPILATION_WAIT);
-    //         let mut started = compilation_wait.checker.lock().unwrap();
-
-    //         // Mark the process as completed and notify waiting threads
-    //         started.make_true();
-    //         compilation_wait.cond.notify_one();
-
-    //         result
-    //     }
-
-    //     // Reject callback for handling errors during the bundling process
-    //     fn reject(err: Box<dyn MetaCallValue>, _: Option<Box<dyn Any>>) -> Box<dyn MetaCallValue> {
-    //         let compilation_wait = &*Arc::clone(&IS_COMPILATION_WAIT);
-    //         let mut started = compilation_wait.checker.lock().unwrap();
-
-    //         // Log the bundling error and mark the process as completed
-    //         error!("Bundling rejected: {err:?}");
-    //         started.make_true();
-    //         compilation_wait.cond.notify_one();
-
-    //         err
-    //     }
-
-    //     // Call the `web_bundling` function in the MetaCall script with targets and output path
-    //     let future = metacall::<MetaCallFuture>(
-    //         BUNDLING_FUNC,
-    //         [
-    //             // Serialize the targets map to a string format
-    //             serde_json::to_string(&self.targets)?,
-    //             // Get the distribution path as a string
-    //             self.dist_path.to_str().unwrap().to_owned(),
-    //         ],
-    //     )
-    //     .unwrap();
-
-    //     // Set the resolve and reject handlers for the bundling future
-    //     future.then(resolve).catch(reject).await_fut();
-
-    //     // Lock the mutex and wait for the bundling process to complete
-    //     let compilation_wait = Arc::clone(&IS_COMPILATION_WAIT);
-    //     let mut started = compilation_wait.checker.lock().unwrap();
-
-    //     // Block the current thread until the bundling process signals completion
-    //     while !started.is_true() {
-    //         started = Arc::clone(&IS_COMPILATION_WAIT).cond.wait(started).unwrap();
-    //     }
-
-    //     // Reset the checker state to false after the process completes
-    //     started.make_false();
-    //     Ok(())
-    // }
 }
 
 #[cfg(test)]
