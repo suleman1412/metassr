@@ -1,19 +1,17 @@
 use anyhow::{anyhow, Result};
-#[macro_use]
-extern crate serde_json;
-
+use serde_json::json;
 use std::{
     collections::HashMap,
     ffi::OsStr,
     marker::Sized,
     path::Path, 
-    sync::Arc,
+    sync::Arc, vec,
 };
 
 use rspack::builder::{Builder as _, Devtool, OutputOptionsBuilder};
 use rspack_core::{Compiler, Experiments, Filename, PublicPath, LibraryOptions,
     LibraryType, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-    ModuleRuleUseLoader, Resolve, RuleSetCondition};
+    ModuleRuleUseLoader, Resolve, RuleSetCondition, ModuleType};
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_fs::{ WritableFileSystem, NativeFileSystem };
@@ -107,36 +105,66 @@ impl<'a> WebBundler<'a> {
             ..Default::default()
         };
 
-
+        let js_regex = RspackRegex::new(r#"\.(jsx|js)$"#)
+            .map_err(|e| anyhow!("Invalid JS rule regex: {}", e))?;
         let js_rule = ModuleRule {
-            test: Some(RuleSetCondition::Regexp(
-                RspackRegex::new(r#"\.(jsx|js)$"#).unwrap(),
-            )),
+            test: Some(RuleSetCondition::Regexp(js_regex)),
+            exclude: Some(RuleSetCondition::Regexp(RspackRegex::new(r#"node_modules"#).map_err(|e| anyhow!("Skip node modules: {}", e))?)),
             effect: ModuleRuleEffect {
                 r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
                 loader: "builtin:swc-loader".to_string(),
                 options: Some(json!({
                     "jsc": {
-                    "parser": {
-                        "syntax": "ecmascript",
-                        "jsx": true,
-                    },
-                    "transform": {
-                        "react": {
-                        "runtime": "automatic",
-                        "pragma": "React.createElement",
-                        "pragmaFrag": "React.Fragment",
-                        "throwIfNamespace": true,
-                        "useBuiltins": false
+                        "parser": {
+                            "syntax": "ecmascript",
+                            "jsx": true,
+                            "dynamicImport": true, 
+                        },
+                        "transform": {
+                            "react": {
+                                "runtime": "automatic",
+                                "throwIfNamespace": true,
+                            }
                         }
-                    }
                     }
                 }).to_string()),
                 }]),
+                r#type: Some(ModuleType::from("javascript/auto")),
                 ..Default::default()
             },
             ..Default::default()
         };
+
+        let ts_regex = RspackRegex::new(r#"\.(tsx|ts)$"#)
+            .map_err(|e| anyhow!("Invalid TS rule regex: {}", e))?;
+        let ts_rule = ModuleRule {
+            test: Some(RuleSetCondition::Regexp(ts_regex)),
+            exclude: Some(RuleSetCondition::Regexp(RspackRegex::new(r#"node_modules"#).map_err(|e| anyhow!("Skip node modules: {}", e))?)),
+            effect: ModuleRuleEffect {
+                r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+                    loader: "builtin:swc-loader".to_string(),
+                    options: Some(json!({
+                        "jsc": {
+                            "parser": {
+                                "syntax": "typescript",
+                                "tsx": true,
+                                "decorators": true
+                            },
+                            "transform": {
+                                "react": {
+                                    "runtime": "automatic",
+                                    "throwIfNamespace": true,
+                                }
+                            }
+                        }
+                    }).to_string()),
+                }]),
+                r#type: Some(ModuleType::from("javascript/auto")),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
         
         let fs = Arc::new(NativeFileSystem::new(false));
         let dist_utf8 = Utf8Path::new(self.dist_path.to_str().ok_or_else(|| anyhow!("Invalid dist path"))?);
@@ -145,13 +173,14 @@ impl<'a> WebBundler<'a> {
             .map_err(|e| anyhow!("Failed to create output directory: {:?}", e))?;
 
 
-        builder.module(ModuleOptions::builder().rule(js_rule))
+        builder
+            .module(ModuleOptions::builder()
+            .rules(vec![js_rule, ts_rule]))
             .context(context)
             .experiments(Experiments::builder().css(true))
             .mode(Mode::Production)
             .devtool(Devtool::SourceMap)
             .enable_loader_swc()
-            // .enable_loader_react_refresh()
             .output_filesystem(fs)
             .resolve(resolve_options)
             .output(OutputOptionsBuilder::default()
@@ -164,7 +193,7 @@ impl<'a> WebBundler<'a> {
                     umd_named_define: None,
                     auxiliary_comment: None,
                     amd_container: None,
-                    library_type: "commonjs2".to_string() as LibraryType
+                    library_type: LibraryType::from("commonjs2")
             }));
 
 

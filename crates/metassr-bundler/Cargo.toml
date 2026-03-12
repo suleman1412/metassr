@@ -8,15 +8,10 @@ description = "A simple crate is used for web bundling built on Metacall and Rsp
 [dependencies]
 anyhow = "1.0.102"
 serde_json = "1.0.128"
-tracing = "0.1.40"
 tokio = { version = "1.48.0", default-features = false, features = ["rt", "rt-multi-thread"] }
-rspack = { git = "https://github.com/web-infra-dev/rspack/", version = "0.100.0-beta.5", default-features = true, features = ["loader_swc"]}
+rspack = { git = "https://github.com/web-infra-dev/rspack/", tag = "v2.0.0-beta.5", default-features = true, features = ["loader_swc"]}
 
-rspack_core = { git = "https://github.com/web-infra-dev/rspack", version = "0.100.0-beta.5", package = "rspack_core" }
-rspack_paths = { git = "https://github.com/web-infra-dev/rspack", version = "0.100.0-beta.5", package = "rspack_paths" }
-rspack_regex = { git = "https://github.com/web-infra-dev/rspack", version = "0.100.0-beta.5", package = "rspack_regex" }
-rspack_tasks = { git = "https://github.com/web-infra-dev/rspack", version = "0.100.0-beta.5", package = "rspack_tasks" }
-rspack_fs = { git = "https://github.com/web-infra-dev/rspack", version = "0.100.0-beta.5", package = "rspack_fs" }
-
-# [build-dependencies]
-# metacall-sys = "0.1.4"
+rspack_core = { git = "https://github.com/web-infra-dev/rspack", tag = "v2.0.0-beta.5", package = "rspack_core" }
+rspack_paths = { git = "https://github.com/web-infra-dev/rspack", tag = "v2.0.0-beta.5", package = "rspack_paths" }
+rspack_regex = { git = "https://github.com/web-infra-dev/rspack", tag = "v2.0.0-beta.5", package = "rspack_regex" }
+rspack_fs = { git = "https://github.com/web-infra-dev/rspack", tag = "v2.0.0-beta.5", package = "rspack_fs" }
