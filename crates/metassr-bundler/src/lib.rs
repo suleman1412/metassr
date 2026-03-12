@@ -77,9 +77,24 @@ impl<'a> WebBundler<'a> {
     /// This function returns an `Err` if bundling fails.
     pub fn exec(&self) -> Result<()> {
         match tokio::runtime::Handle::try_current() {
-            Ok(handle) => {
-                tokio::task::block_in_place(|| handle.block_on(async { self.exec_async().await }))
-            }
+            Ok(handle) => match handle.runtime_flavor() {
+                tokio::runtime::RuntimeFlavor::MultiThread => {
+                    tokio::task::block_in_place(|| {
+                        handle.block_on(async { self.exec_async().await })
+                    })
+                }
+                _ => {
+                    std::thread::scope(|s| {
+                        s.spawn(|| {
+                            tokio::runtime::Runtime::new()
+                                .map_err(|e| anyhow!("Failed to create runtime: {:?}", e))?
+                                .block_on(async { self.exec_async().await })
+                        })
+                        .join()
+                        .map_err(|_| anyhow!("Bundler thread panicked"))?
+                    })
+                }
+            },
             Err(_) => {
                 tokio::runtime::Runtime::new()
                     .map_err(|e| anyhow!("Failed to create runtime: {:?}", e))?
