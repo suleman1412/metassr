@@ -183,7 +183,6 @@ impl<'a> WebBundler<'a> {
 mod tests {
 
     use super::*;
-    // use metacall::initialize;
 
     fn clean() {
         let dist = Path::new("tests/dist");
