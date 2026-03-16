@@ -7,6 +7,7 @@ use std::{
     path::Path, 
     sync::Arc, vec,
 };
+use metacall::{load, metacall, MetaCallFuture, MetaCallValue};
 use rspack::builder::{Builder as _, Devtool, OptimizationOptionsBuilder, OutputOptionsBuilder, ModuleOptionsBuilder};
 use rspack_core::{Compiler, Experiments, Filename, PublicPath, LibraryOptions,
     LibraryType, Mode, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
@@ -53,7 +54,27 @@ impl<'a> WebBundler<'a> {
     }
 
     pub fn exec(&self) -> Result<()> {
+        let dist_path_utf8 = Utf8PathBuf::from_path_buf(
+            self.dist_path.to_path_buf()
+        ).map_err(|e| anyhow!("Failed to convert path to Utf8PathBuf: {:?}", e))?;
+
+        let native_fs = Arc::new(NativeFileSystem::new(false));
+
         let mut compiler = Compiler::builder();
+        compiler
+            .output(
+                OutputOptionsBuilder::default()
+                    .filename(Filename::from("[name].js"))
+                    .library(LibraryOptions {
+                        library_type: LibraryType::from("commonjs2"),
+                        name: None,
+                        export: None,
+                        umd_named_define: None,
+                        auxiliary_comment: None,
+                        amd_container: None,
+                }))
+            .output_filesystem(native_fs.clone());
+
         for (entry_name, entry_path) in &self.targets {
             let entry_path_str = entry_path
                 .to_str()
@@ -72,6 +93,8 @@ impl<'a> WebBundler<'a> {
                 // Tokio runtime exists (CLI) - use block_in_place
                 tokio::task::block_in_place(|| {
                     handle.block_on(async { 
+                        native_fs.create_dir_all(&dist_path_utf8).await
+                            .map_err(|e| anyhow!("Failed to create directory: {}", e))?;
                         compiler.run().await
                             .map_err(|e| anyhow!("Compilation failed: {}", e))?;
                         Ok::<(), anyhow::Error>(())
@@ -84,11 +107,30 @@ impl<'a> WebBundler<'a> {
                     .map_err(|e| anyhow!("Failed to create runtime: {}", e))?;
             
                 rt.block_on(async {
+                    native_fs.create_dir_all(&dist_path_utf8).await
+                            .map_err(|e| anyhow!("Failed to create directory: {}", e))?;
                     compiler.run().await
                         .map_err(|e| anyhow!("Compilation failed: {}", e))?;
                     Ok::<(), anyhow::Error>(())
                 }).map_err(|e| anyhow!("Runtime block failed: {}", e))?
             }
+        }
+        // Check for compilation errors
+        // Collect any errors from the compilation
+        let errors: Vec<_> = compiler.compilation.get_errors().collect();
+        
+        if !errors.is_empty() {
+            let error_messages: Vec<String> = errors
+                .iter()
+                .map(|e| format!("{:#?}", e))
+                .collect();
+            println!("{:#?}", error_messages);
+            
+            return Err(anyhow!(
+                "Bundling failed with {} error(s): {}",
+                error_messages.len(),
+                error_messages.join("\n")
+            ));
         }
 
         Ok(())
