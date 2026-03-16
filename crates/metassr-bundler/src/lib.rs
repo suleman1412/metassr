@@ -72,8 +72,22 @@ impl<'a> WebBundler<'a> {
                         umd_named_define: None,
                         auxiliary_comment: None,
                         amd_container: None,
-                }))
+                    })
+                    .path(dist_path_utf8.clone())
+                    .public_path(PublicPath::Filename(Filename::from("")))
+                )
+            .resolve(Resolve{ 
+                extensions: Some(vec![
+                    ".js".to_string(),
+                    ".jsx".to_string(),
+                    ".tsx".to_string(),
+                    ".ts".to_string(),
+                ]),
+                ..Default::default()
+            })
+            .optimization(OptimizationOptionsBuilder::default().minimize(true))
             .module(ModuleOptionsBuilder::default().rules(create_module_rules()))
+            .enable_loader_swc()
             .output_filesystem(native_fs.clone());
 
         for (entry_name, entry_path) in &self.targets {
