@@ -64,6 +64,32 @@ impl<'a> WebBundler<'a> {
                 EntryDescription::from(entry_path_str)
             );
         }
+         let mut compiler = compiler.build()
+            .map_err(|e| anyhow!("Failed to build rspack compiler: {}", e))?;
+        
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                // Tokio runtime exists (CLI) - use block_in_place
+                tokio::task::block_in_place(|| {
+                    handle.block_on(async { 
+                        compiler.run().await
+                            .map_err(|e| anyhow!("Compilation failed: {}", e))?;
+                        Ok::<(), anyhow::Error>(())
+                    })
+                }).map_err(|e| anyhow!("Block in place failed: {}", e))?
+            }
+            Err(_) => {
+                // No Tokio runtime (tests) - create new one
+                let rt = tokio::runtime::Runtime::new()
+                    .map_err(|e| anyhow!("Failed to create runtime: {}", e))?;
+            
+                rt.block_on(async {
+                    compiler.run().await
+                        .map_err(|e| anyhow!("Compilation failed: {}", e))?;
+                    Ok::<(), anyhow::Error>(())
+                }).map_err(|e| anyhow!("Runtime block failed: {}", e))?
+            }
+        }
 
         Ok(())
     }
