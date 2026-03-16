@@ -73,6 +73,7 @@ impl<'a> WebBundler<'a> {
                         auxiliary_comment: None,
                         amd_container: None,
                 }))
+            
             .output_filesystem(native_fs.clone());
 
         for (entry_name, entry_path) in &self.targets {
@@ -135,6 +136,86 @@ impl<'a> WebBundler<'a> {
 
         Ok(())
     }
+}
+
+fn create_module_rules() -> Vec<ModuleRule>  {
+    let mut rules = Vec::new();
+
+    let js_regex = RspackRegex::new(r"\.(jsx|js)$").unwrap();
+    let js_exclude_regex = RspackRegex::new(r"node_modules").unwrap();
+    let js_rule = ModuleRule {
+        test: Some(RuleSetCondition::Regexp(js_regex)),
+        exclude: Some(RuleSetCondition::Regexp(js_exclude_regex)),
+        effect: ModuleRuleEffect {
+            r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+                loader: "builtin:swc-loader".to_string(),
+                options: Some(json!({
+                    "jsc": {
+                        "parser": {
+                            "syntax": "ecmascript",
+                            "jsx": true,
+                            "dynamicImport": true, 
+                        },
+                        "transform": {
+                            "react": {
+                                "runtime": "automatic",
+                                "throwIfNamespace": true,
+                            }
+                        }
+                    }
+                }).to_string()),
+            }]),
+            r#type: Some(ModuleType::JsAuto),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    
+    rules.push(js_rule);
+
+    let ts_regex = RspackRegex::new(r"\.(tsx|ts)$").unwrap();
+    let ts_exclude_regex = RspackRegex::new(r"node_modules").unwrap();
+    let ts_rule = ModuleRule {
+        test: Some(RuleSetCondition::Regexp(ts_regex)),
+        exclude: Some(RuleSetCondition::Regexp(ts_exclude_regex)),
+        effect: ModuleRuleEffect {
+            r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+                loader: "builtin:swc-loader".to_string(),
+                options: Some(json!({
+                    "jsc": {
+                        "parser": {
+                            "syntax": "typescript",
+                            "tsx": true,
+                            "decorators": true
+                        },
+                        "transform": {
+                            "react": {
+                                "runtime": "automatic",
+                                "throwIfNamespace": true,
+                            }
+                        }
+                    }
+                }).to_string()),
+            }]),
+            r#type: Some(ModuleType::JsAuto),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    rules.push(ts_rule);
+
+    let asset_regex = RspackRegex::new(r"\.(png|svg|jpg|jpeg|gif|woff|woff2|eot|ttf|otf|webp)$").unwrap();
+    let asset_rule = ModuleRule {
+        test: Some(RuleSetCondition::Regexp(asset_regex)),
+        effect: ModuleRuleEffect {
+            r#type: Some(ModuleType::AssetInline),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    rules.push(asset_rule);
+    rules
 }
 
 #[cfg(test)]
