@@ -7,7 +7,6 @@ use std::{
     path::Path, 
     sync::Arc, vec,
 };
-use metacall::{load, metacall, MetaCallFuture, MetaCallValue};
 use rspack::builder::{Builder as _, Devtool, OptimizationOptionsBuilder, OutputOptionsBuilder, ModuleOptionsBuilder};
 use rspack_core::{Compiler, Experiments, Filename, PublicPath, LibraryOptions,
     LibraryType, Mode, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
@@ -88,6 +87,12 @@ impl<'a> WebBundler<'a> {
             .optimization(OptimizationOptionsBuilder::default().minimize(true))
             .module(ModuleOptionsBuilder::default().rules(create_module_rules()))
             .enable_loader_swc()
+            .name("Client".to_string())
+            .mode(Mode::Production)
+            .devtool(Devtool::SourceMap)
+            .experiments(Experiments::builder().css(true))
+            .stats(StatsOptions { colors: true })
+            .target(vec!["web".to_string()])
             .output_filesystem(native_fs.clone());
 
         for (entry_name, entry_path) in &self.targets {
@@ -236,7 +241,7 @@ fn create_module_rules() -> Vec<ModuleRule>  {
 mod tests {
 
     use super::*;
-    use metacall::initialize;
+    // use metacall::initialize;
 
     fn clean() {
         let dist = Path::new("tests/dist");
@@ -248,7 +253,7 @@ mod tests {
     #[test]
     fn bundling_works() {
         clean();
-        let _metacall = initialize().unwrap();
+        // let _metacall = initialize().unwrap();
         let targets = HashMap::from([("pages/home".to_owned(), "./tests/home.js".to_owned())]);
 
         match WebBundler::new(&targets, "tests/dist") {
