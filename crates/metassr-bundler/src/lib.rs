@@ -73,7 +73,7 @@ impl<'a> WebBundler<'a> {
                         auxiliary_comment: None,
                         amd_container: None,
                 }))
-            
+            .module(ModuleOptionsBuilder::default().rules(create_module_rules()))
             .output_filesystem(native_fs.clone());
 
         for (entry_name, entry_path) in &self.targets {
