@@ -241,7 +241,7 @@ fn create_module_rules() -> Vec<ModuleRule>  {
 mod tests {
 
     use super::*;
-    // use metacall::initialize;
+    use metacall::initialize;
 
     fn clean() {
         let dist = Path::new("tests/dist");
@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn bundling_works() {
         clean();
-        // let _metacall = initialize().unwrap();
+        let _metacall = initialize().unwrap();
         let targets = HashMap::from([("pages/home".to_owned(), "./tests/home.js".to_owned())]);
 
         match WebBundler::new(&targets, "tests/dist") {
