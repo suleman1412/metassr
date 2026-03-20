@@ -2049,6 +2049,7 @@ name = "metassr-bundler"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
+ "metacall",
  "metacall-sys",
  "rspack",
  "rspack_core",
