@@ -144,7 +144,6 @@ impl<'a> WebBundler<'a> {
                 .iter()
                 .map(|e| format!("{:#?}", e))
                 .collect();
-            println!("{:#?}", error_messages);
             
             return Err(anyhow!(
                 "Bundling failed with {} error(s): {}",
