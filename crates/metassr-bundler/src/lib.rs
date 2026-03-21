@@ -1,20 +1,17 @@
 use anyhow::{anyhow, Result};
-use serde_json::json;
-use std::{
-    collections::HashMap,
-    ffi::OsStr,
-    marker::Sized,
-    path::Path, 
-    sync::Arc, vec,
+use rspack::builder::{
+    Builder as _, Devtool, ModuleOptionsBuilder, OptimizationOptionsBuilder, OutputOptionsBuilder,
 };
-use rspack::builder::{Builder as _, Devtool, OptimizationOptionsBuilder, OutputOptionsBuilder, ModuleOptionsBuilder};
-use rspack_core::{Compiler, Experiments, Filename, PublicPath, LibraryOptions,
-    LibraryType, Mode, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-    ModuleRuleUseLoader, Resolve, RuleSetCondition, ModuleType, EntryDescription, 
-    StatsOptions};
+use rspack_core::{
+    Compiler, EntryDescription, Experiments, Filename, LibraryOptions, LibraryType, Mode,
+    ModuleRule, ModuleRuleEffect, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, PublicPath,
+    Resolve, RuleSetCondition, StatsOptions,
+};
+use rspack_fs::{NativeFileSystem, WritableFileSystem};
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
-use rspack_fs::{ WritableFileSystem, NativeFileSystem };
+use serde_json::json;
+use std::{collections::HashMap, ffi::OsStr, marker::Sized, path::Path, sync::Arc, vec};
 
 #[derive(Debug)]
 pub struct WebBundler<'a> {
@@ -53,9 +50,8 @@ impl<'a> WebBundler<'a> {
     }
 
     pub fn exec(&self) -> Result<()> {
-        let dist_path_utf8 = Utf8PathBuf::from_path_buf(
-            self.dist_path.to_path_buf()
-        ).map_err(|e| anyhow!("Failed to convert path to Utf8PathBuf: {:?}", e))?;
+        let dist_path_utf8 = Utf8PathBuf::from_path_buf(self.dist_path.to_path_buf())
+            .map_err(|e| anyhow!("Failed to convert path to Utf8PathBuf: {:?}", e))?;
 
         let native_fs = Arc::new(NativeFileSystem::new(false));
 
@@ -73,9 +69,9 @@ impl<'a> WebBundler<'a> {
                         amd_container: None,
                     })
                     .path(dist_path_utf8.clone())
-                    .public_path(PublicPath::Filename(Filename::from("")))
-                )
-            .resolve(Resolve{ 
+                    .public_path(PublicPath::Filename(Filename::from(""))),
+            )
+            .resolve(Resolve {
                 extensions: Some(vec![
                     ".js".to_string(),
                     ".jsx".to_string(),
@@ -99,52 +95,57 @@ impl<'a> WebBundler<'a> {
             let entry_path_str = entry_path
                 .to_str()
                 .ok_or_else(|| anyhow!("Invalid UTF-8 in entry path: {:?}", entry_path))?;
-            
-            compiler.entry(
-                entry_name.clone(),
-                EntryDescription::from(entry_path_str)
-            );
+
+            compiler.entry(entry_name.clone(), EntryDescription::from(entry_path_str));
         }
-         let mut compiler = compiler.build()
+        let mut compiler = compiler
+            .build()
             .map_err(|e| anyhow!("Failed to build rspack compiler: {}", e))?;
-        
+
         match tokio::runtime::Handle::try_current() {
             Ok(handle) => {
                 // Tokio runtime exists (CLI) - use block_in_place
                 tokio::task::block_in_place(|| {
-                    handle.block_on(async { 
-                        native_fs.create_dir_all(&dist_path_utf8).await
+                    handle.block_on(async {
+                        native_fs
+                            .create_dir_all(&dist_path_utf8)
+                            .await
                             .map_err(|e| anyhow!("Failed to create directory: {}", e))?;
-                        compiler.run().await
+                        compiler
+                            .run()
+                            .await
                             .map_err(|e| anyhow!("Compilation failed: {}", e))?;
                         Ok::<(), anyhow::Error>(())
                     })
-                }).map_err(|e| anyhow!("Block in place failed: {}", e))?
+                })
+                .map_err(|e| anyhow!("Block in place failed: {}", e))?
             }
             Err(_) => {
                 // No Tokio runtime (tests) - create new one
                 let rt = tokio::runtime::Runtime::new()
                     .map_err(|e| anyhow!("Failed to create runtime: {}", e))?;
-            
+
                 rt.block_on(async {
-                    native_fs.create_dir_all(&dist_path_utf8).await
-                            .map_err(|e| anyhow!("Failed to create directory: {}", e))?;
-                    compiler.run().await
+                    native_fs
+                        .create_dir_all(&dist_path_utf8)
+                        .await
+                        .map_err(|e| anyhow!("Failed to create directory: {}", e))?;
+                    compiler
+                        .run()
+                        .await
                         .map_err(|e| anyhow!("Compilation failed: {}", e))?;
                     Ok::<(), anyhow::Error>(())
-                }).map_err(|e| anyhow!("Runtime block failed: {}", e))?
+                })
+                .map_err(|e| anyhow!("Runtime block failed: {}", e))?
             }
         }
         // Check for compilation errors
         // Collect any errors from the compilation
         let errors: Vec<_> = compiler.compilation.get_errors().collect();
-        
+
         if !errors.is_empty() {
-            let error_messages: Vec<String> = errors
-                .iter()
-                .map(|e| format!("{:#?}", e))
-                .collect();
-            
+            let error_messages: Vec<String> = errors.iter().map(|e| format!("{:#?}", e)).collect();
+
             return Err(anyhow!(
                 "Bundling failed with {} error(s): {}",
                 error_messages.len(),
@@ -156,7 +157,7 @@ impl<'a> WebBundler<'a> {
     }
 }
 
-fn create_module_rules() -> Vec<ModuleRule>  {
+fn create_module_rules() -> Vec<ModuleRule> {
     let mut rules = Vec::new();
 
     let js_regex = RspackRegex::new(r"\.(jsx|js)$").unwrap();
@@ -167,28 +168,31 @@ fn create_module_rules() -> Vec<ModuleRule>  {
         effect: ModuleRuleEffect {
             r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
                 loader: "builtin:swc-loader".to_string(),
-                options: Some(json!({
-                    "jsc": {
-                        "parser": {
-                            "syntax": "ecmascript",
-                            "jsx": true,
-                            "dynamicImport": true, 
-                        },
-                        "transform": {
-                            "react": {
-                                "runtime": "automatic",
-                                "throwIfNamespace": true,
+                options: Some(
+                    json!({
+                        "jsc": {
+                            "parser": {
+                                "syntax": "ecmascript",
+                                "jsx": true,
+                                "dynamicImport": true,
+                            },
+                            "transform": {
+                                "react": {
+                                    "runtime": "automatic",
+                                    "throwIfNamespace": true,
+                                }
                             }
                         }
-                    }
-                }).to_string()),
+                    })
+                    .to_string(),
+                ),
             }]),
             r#type: Some(ModuleType::JsAuto),
             ..Default::default()
         },
         ..Default::default()
     };
-    
+
     rules.push(js_rule);
 
     let ts_regex = RspackRegex::new(r"\.(tsx|ts)$").unwrap();
@@ -199,21 +203,24 @@ fn create_module_rules() -> Vec<ModuleRule>  {
         effect: ModuleRuleEffect {
             r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
                 loader: "builtin:swc-loader".to_string(),
-                options: Some(json!({
-                    "jsc": {
-                        "parser": {
-                            "syntax": "typescript",
-                            "tsx": true,
-                            "decorators": true
-                        },
-                        "transform": {
-                            "react": {
-                                "runtime": "automatic",
-                                "throwIfNamespace": true,
+                options: Some(
+                    json!({
+                        "jsc": {
+                            "parser": {
+                                "syntax": "typescript",
+                                "tsx": true,
+                                "decorators": true
+                            },
+                            "transform": {
+                                "react": {
+                                    "runtime": "automatic",
+                                    "throwIfNamespace": true,
+                                }
                             }
                         }
-                    }
-                }).to_string()),
+                    })
+                    .to_string(),
+                ),
             }]),
             r#type: Some(ModuleType::JsAuto),
             ..Default::default()
@@ -223,7 +230,8 @@ fn create_module_rules() -> Vec<ModuleRule>  {
 
     rules.push(ts_rule);
 
-    let asset_regex = RspackRegex::new(r"\.(png|svg|jpg|jpeg|gif|woff|woff2|eot|ttf|otf|webp)$").unwrap();
+    let asset_regex =
+        RspackRegex::new(r"\.(png|svg|jpg|jpeg|gif|woff|woff2|eot|ttf|otf|webp)$").unwrap();
     let asset_rule = ModuleRule {
         test: Some(RuleSetCondition::Regexp(asset_regex)),
         effect: ModuleRuleEffect {
