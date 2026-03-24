@@ -35,12 +35,19 @@ jobs:
 
       - name: Build
         run: cargo build
+        env:
+          # This tells the linker where to find libmetacall.dylib
+          LIBRARY_PATH: /usr/local/lib:/usr/lib:${{ github.workspace }}/metacall/install/lib
+          # This tells the system where to find it at runtime
+          DYLD_LIBRARY_PATH: /usr/local/lib:/usr/lib:${{ github.workspace }}/metacall/install/lib
 
       - name: Integration Testing
         working-directory: ./tests/web-app
         shell: bash
         env:
           npm_config_script_shell: bash
+          LIBRARY_PATH: /usr/local/lib:/usr/lib
+          DYLD_LIBRARY_PATH: /usr/local/lib:/usr/lib
         run: |
           npm install
           npm run build:debug
