@@ -1998,6 +1998,7 @@ dependencies = [
  "axum",
  "chrono",
  "clap",
+ "dunce",
  "inquire",
  "lazy_static",
  "logger",
@@ -2041,6 +2042,7 @@ name = "metassr-build"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
+ "dunce",
  "lazy_static",
  "metacall",
  "metacall-sys",
@@ -2058,6 +2060,7 @@ name = "metassr-bundler"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
+ "dunce",
  "metacall",
  "metacall-sys",
  "rspack",
@@ -2095,6 +2098,7 @@ name = "metassr-create"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
+ "dunce",
  "walkdir",
 ]
 
@@ -2103,6 +2107,7 @@ name = "metassr-fs-analyzer"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
+ "dunce",
  "metassr-utils",
  "serde",
  "walkdir",
@@ -2147,6 +2152,7 @@ name = "metassr-utils"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
+ "dunce",
  "serde",
  "walkdir",
 ]
@@ -5479,7 +5485,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "230a1b821ccbd75b185820a1f1ff7b14d21da1e442e22c0863ea5f08771a8874"
 dependencies = [
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

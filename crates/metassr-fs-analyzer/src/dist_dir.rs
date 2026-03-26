@@ -1,5 +1,6 @@
 use super::DirectoryAnalyzer;
 use anyhow::{anyhow, Result};
+use dunce;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -224,7 +225,7 @@ impl DirectoryAnalyzer for DistDir {
             if !pages.contains_key(parent_stripped) {
                 pages.insert(
                     parent_stripped.to_owned(),
-                    PageEntry::new(parent.to_path_buf().canonicalize().unwrap()), // Add canonicalized parent path
+                    PageEntry::new(dunce::canonicalize(parent).unwrap()),
                 );
             };
 
@@ -276,7 +277,10 @@ mod tests {
             "/* Subdir CSS file */",
         )
         .unwrap();
-        dbg!(&tmp_dir.canonicalize(), &pages_dir.canonicalize());
+        dbg!(
+            &dunce::canonicalize(&tmp_dir),
+            &dunce::canonicalize(&pages_dir)
+        );
         tmp_dir
     }
 
