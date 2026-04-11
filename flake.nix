@@ -80,9 +80,20 @@
               export PROMPT="%F{green}[metassr-dev]%f:%F{blue}%~%f $ "
             fi
 
-            echo "Welcome to dev shell"
+            echo "Welcome to dev shell (${system})"
             echo "Node.js: $(node --version)"
             echo "Rust: $(rustc --version)"
+          '';
+        };
+
+        checks = {
+          devShell-evaluates = pkgs.runCommand "devShell-check" {} ''
+            echo "devShell for ${system} evaluates correctly"
+            touch $out
+          '';
+
+          rust-toolchain-ok = pkgs.runCommand "rust-toolchain-check" {} ''
+            ${rustToolchain}/bin/rustc --version > $out
           '';
         };
       });
