@@ -1,6 +1,6 @@
 {
   # USAGE: `nix develop`
-  # this flake only runs for architecture "x86_64-linux"
+  # supported architectures: ["x86_64-linux" "aarch64-darwin" "x86_64-darwin"]
 
   description = "metassr - a simple dev shell with rust and metacall";
 
@@ -14,33 +14,26 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, fenix, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachSystem ["x86_64-linux" "aarch64-darwin" "x86_64-darwin"] (system:
       let
-        system = "x86_64-linux"; 
         pkgs = nixpkgs.legacyPackages.${system};
-        
-        # Create a Rust toolchain using fenix (Nightly)
-        rustToolchain = (fenix.packages.${system}.toolchainOf {
-          channel = "nightly";
-          date = "2025-10-15";
-          sha256 = "sha256-nYxm7Okhb4WOD0C/qCJ3uzm+VwgQTG4SSpO8IXewVXU=";
-        }).defaultToolchain;
-        
-        # Or for more granular control, use:
-        # rustToolchain = fenix.packages.${system}.combine [
-        #   fenix.packages.${system}.latest.rustc
-        #   fenix.packages.${system}.latest.cargo
-        #   fenix.packages.${system}.latest.rustfmt
-        #   fenix.packages.${system}.latest.clippy
-        #   fenix.packages.${system}.latest.rust-src
-        #   fenix.packages.${system}.latest.rust-analyzer
-        # ];
 
         metacallConfig = {
-          defaultLibPaths = [
-            "/gnu/"
-          ];
+          "x86_64-linux" = {
+            libPaths = ["/gnu/"];
+            dynlibVar = "LD_LIBRARY_PATH";
+          };
+          "aarch64-darwin" = {
+            libPaths = ["/opt/homebrew/lib/"];
+            dynlibVar = "DYLD_LIBRARY_PATH";
+          };
+          "x86_64-darwin" = {
+            libPaths = ["/usr/local/lib/"];
+            dynlibVar = "DYLD_LIBRARY_PATH";
+          };
         };
+
+        cfg = metacallConfig.${system};
 
         formatLibPaths = paths: builtins.concatStringsSep ":" paths;
       in
@@ -77,7 +70,6 @@
             export LIBRARY_PATH=${formatLibPaths metacallConfig.defaultLibPaths}:$LIBRARY_PATH
             export RUSTFLAGS="${builtins.concatStringsSep " " (map (path: "-L ${path}") metacallConfig.defaultLibPaths)}"
 
-            # Prompt (bash vs zsh)
             if [ -n "$BASH_VERSION" ]; then
               export PS1="\[\033[1;32m\][metassr-dev]\[\033[0m\]:\[\033[1;34m\]\w\[\033[0m\] $ "
             elif [ -n "$ZSH_VERSION" ]; then
