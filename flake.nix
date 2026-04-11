@@ -70,10 +70,9 @@
           };
 
           shellHook = ''
-            # Adjust library paths for MetaCall
-            export LD_LIBRARY_PATH=${formatLibPaths metacallConfig.defaultLibPaths}:$LD_LIBRARY_PATH
-            export LIBRARY_PATH=${formatLibPaths metacallConfig.defaultLibPaths}:$LIBRARY_PATH
-            export RUSTFLAGS="${builtins.concatStringsSep " " (map (path: "-L ${path}") metacallConfig.defaultLibPaths)}"
+            export ${cfg.dynlibVar}=${formatLibPaths cfg.libPaths}:$${cfg.dynlibVar}
+            export LIBRARY_PATH=${formatLibPaths cfg.libPaths}:$LIBRARY_PATH
+            export RUSTFLAGS="${builtins.concatStringsSep " " (map (path: "-L ${path}") cfg.libPaths)}"
 
             if [ -n "$BASH_VERSION" ]; then
               export PS1="\[\033[1;32m\][metassr-dev]\[\033[0m\]:\[\033[1;34m\]\w\[\033[0m\] $ "
