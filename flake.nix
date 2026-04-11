@@ -36,6 +36,11 @@
         cfg = metacallConfig.${system};
 
         formatLibPaths = paths: builtins.concatStringsSep ":" paths;
+
+        rustToolchain = fenix.packages.${system}.fromToolchainFile {
+          file = ./rust-toolchain.toml;
+          sha256 = "sha256-nYxm7Okhb4WOD0C/qCJ3uzm+VwgQTG4SSpO8IXewVXU=";
+        };
       in
       {
         devShells.default = pkgs.mkShell {
