@@ -1,4 +1,4 @@
-name: Nix Development Environment
+name: Nix dev env
 
 on:
   push:
