@@ -22,6 +22,23 @@ use std::time::Instant;
 use notify_debouncer_full::DebouncedEvent;
 
 use tracing::{debug, error, warn};
+struct RebuildGuard<'a> {
+    flag: &'a AtomicBool,
+}
+impl<'a> RebuildGuard<'a> {
+    fn new(flag: &'a AtomicBool) -> Option<Self> {
+        if flag.swap(true, Ordering::SeqCst) {
+            None
+        } else {
+            Some(Self { flag })
+        }
+    }
+}
+impl Drop for RebuildGuard<'_> {
+    fn drop(&mut self) {
+        self.flag.store(false, Ordering::SeqCst);
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum RebuildType {
