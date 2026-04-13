@@ -6,7 +6,7 @@ use std::{
     },
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Ok, Result, anyhow};
 use metassr_api_handler::ApiRoutes;
 use metassr_build::{
     client::ClientBuilder,
@@ -139,9 +139,13 @@ impl Rebuilder {
     }
 
     pub fn rebuild(&self, rebuild_type: RebuildType) -> Result<()> {
-        if self.is_rebuilding.swap(true, Ordering::SeqCst) {
-            return Ok(()); // Already rebuilding, skip
-        }
+        let _guard = match RebuildGuard::new(&self.is_rebuilding){
+            Some(guard) => guard,
+            None => {
+                debug!("rebuilding in progress, skipping");
+                return Ok(());
+            }
+        };
 
         match rebuild_type {
             RebuildType::Page(ref path) => {
@@ -183,7 +187,6 @@ impl Rebuilder {
             }
         }
 
-        self.is_rebuilding.store(false, Ordering::SeqCst);
         Ok(())
     }
 
