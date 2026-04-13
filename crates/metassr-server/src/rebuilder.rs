@@ -6,7 +6,7 @@ use std::{
     },
 };
 
-use anyhow::{Ok, Result, anyhow};
+use anyhow::{anyhow, Result};
 use metassr_api_handler::ApiRoutes;
 use metassr_build::{
     client::ClientBuilder,
@@ -139,7 +139,7 @@ impl Rebuilder {
     }
 
     pub fn rebuild(&self, rebuild_type: RebuildType) -> Result<()> {
-        let _guard = match RebuildGuard::new(&self.is_rebuilding){
+        let _guard = match RebuildGuard::new(&self.is_rebuilding) {
             Some(guard) => guard,
             None => {
                 debug!("rebuilding in progress, skipping");
@@ -339,5 +339,44 @@ mod tests {
             .unwrap();
 
         assert!(matches!(result, RebuildType::Component));
+    }
+
+    #[test]
+    fn rebuild_flag_resets_after_error() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let rebuilder =
+            Rebuilder::new(tmp.path().to_path_buf(), BuildingType::ServerSideRendering).unwrap();
+        let first = rebuilder.rebuild(RebuildType::Page(PathBuf::from(
+            "src/pages/nonexistent.tsx",
+        )));
+        assert!(
+            first.is_err(),
+            "first rebuild should fail with invalid path"
+        );
+        let second = rebuilder.rebuild(RebuildType::Page(PathBuf::from(
+            "src/pages/nonexistent.tsx",
+        )));
+        assert!(
+            second.is_err(),
+            "second rebuild should attempt to rebuild (return Err), not return Ok(())"
+        );
+    }
+    #[test]
+    fn rebuild_flag_resets_after_successful_variant() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let rebuilder =
+            Rebuilder::new(tmp.path().to_path_buf(), BuildingType::ServerSideRendering).unwrap();
+        let first = rebuilder.rebuild(RebuildType::Api(PathBuf::from("src/api/test.js")));
+        assert!(
+            first.is_ok(),
+            "api rebuild with no routes should succeed with a warning"
+        );
+        let second = rebuilder.rebuild(RebuildType::Page(PathBuf::from(
+            "src/pages/nonexistent.tsx",
+        )));
+        assert!(
+            second.is_err(),
+            "page rebuild after api rebuild should still attempt (not skipped)"
+        );
     }
 }
