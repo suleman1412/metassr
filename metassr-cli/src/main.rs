@@ -24,8 +24,14 @@ async fn main() -> Result<()> {
     let allow_metacall_debug =
         [Some(DebugMode::All), Some(DebugMode::Metacall)].contains(&args.debug_mode);
     let allow_http_debug = [Some(DebugMode::All), Some(DebugMode::Http)].contains(&args.debug_mode);
+    
+    let tracing_level = match args.debug_mode{
+        Some(DebugMode::All) => "debug",
+        Some(DebugMode::Http) => "http=debug,info",
+        _ => "info"
+    };
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        EnvFilter::new("info").add_directive("notify=off".parse().unwrap())
+        EnvFilter::new(tracing_level).add_directive("notify=off".parse().unwrap())
     });
     if let Commands::Create { .. } = args.commands {
         tracing_subscriber::fmt()
