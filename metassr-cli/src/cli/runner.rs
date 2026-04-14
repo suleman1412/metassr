@@ -23,9 +23,10 @@ impl Runner {
 }
 impl AsyncExec for Runner {
     async fn exec(&self) -> Result<()> {
-        let _metacall = initialize()
-            .expect("Failed to initialize MetaCall runtime. 
-            Ensure MetaCall is installed and accessible.");
+        let _metacall = initialize().expect(
+            "Failed to initialize MetaCall runtime. 
+            Ensure MetaCall is installed and accessible.",
+        );
         let running_type = match self.is_served {
             true => RunningType::StaticSiteGeneration,
             false => RunningType::ServerSideRendering,

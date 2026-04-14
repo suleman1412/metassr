@@ -44,8 +44,7 @@ async fn main() -> Result<()> {
             .init();
         let project_root = Path::new(&args.root);
 
-        set_current_dir(project_root)
-            .expect("Failed to change directory to project root");
+        set_current_dir(project_root).expect("Failed to change directory to project root");
 
         if allow_metacall_debug {
             set_var("METACALL_DEBUG", "1");

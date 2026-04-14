@@ -25,9 +25,10 @@ impl Builder {
 
 impl Exec for Builder {
     fn exec(&self) -> anyhow::Result<()> {
-        let _metacall = initialize()
-            .expect("Failed to initialize MetaCall runtime. 
-            Ensure MetaCall is installed and accessible.");
+        let _metacall = initialize().expect(
+            "Failed to initialize MetaCall runtime. 
+            Ensure MetaCall is installed and accessible.",
+        );
 
         let instant = Instant::now();
 
