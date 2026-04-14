@@ -132,7 +132,8 @@ impl Dev {
 
 impl AsyncExec for Dev {
     async fn exec(&self) -> Result<()> {
-        let _metacall = initialize().unwrap();
+        let _metacall = initialize()
+            .expect("Failed to initialize MetaCall runtime. Ensure MetaCall is installed and accessible.");
 
         self.setup_watcher()?;
 
