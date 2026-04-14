@@ -24,11 +24,11 @@ async fn main() -> Result<()> {
     let allow_metacall_debug =
         [Some(DebugMode::All), Some(DebugMode::Metacall)].contains(&args.debug_mode);
     let allow_http_debug = [Some(DebugMode::All), Some(DebugMode::Http)].contains(&args.debug_mode);
-    
-    let tracing_level = match args.debug_mode{
+
+    let tracing_level = match args.debug_mode {
         Some(DebugMode::All) => "debug",
         Some(DebugMode::Http) => "http=debug,info",
-        _ => "info"
+        _ => "info",
     };
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
         EnvFilter::new(tracing_level).add_directive("notify=off".parse().unwrap())
@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
                 ws_port,
                 current_dir()?,
                 metassr_build::server::BuildingType::ServerSideRendering,
-                allow_http_debug
+                allow_http_debug,
             )?
             .exec()
             .await?;

@@ -47,7 +47,7 @@ impl Dev {
             rebuilder,
             root_path,
             rebuild_tx,
-            allow_http_debug
+            allow_http_debug,
         })
     }
 
