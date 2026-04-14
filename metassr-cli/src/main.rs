@@ -24,11 +24,10 @@ async fn main() -> Result<()> {
     let allow_metacall_debug =
         [Some(DebugMode::All), Some(DebugMode::Metacall)].contains(&args.debug_mode);
     let allow_http_debug = [Some(DebugMode::All), Some(DebugMode::Http)].contains(&args.debug_mode);
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        EnvFilter::new("info").add_directive("notify=off".parse().unwrap())
+    });
     if let Commands::Create { .. } = args.commands {
-        let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new("info").add_directive("notify=off".parse().unwrap())
-        });
-
         tracing_subscriber::fmt()
             .with_env_filter(filter)
             .with_target(false)
@@ -36,10 +35,6 @@ async fn main() -> Result<()> {
             .compact()
             .init();
     } else {
-        let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new("info").add_directive("notify=off".parse().unwrap())
-        });
-
         tracing_subscriber::registry()
             .with(filter)
             .with(LoggingLayer {
