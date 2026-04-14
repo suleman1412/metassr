@@ -85,6 +85,7 @@ async fn main() -> Result<()> {
                 ws_port,
                 current_dir()?,
                 metassr_build::server::BuildingType::ServerSideRendering,
+                allow_http_debug
             )?
             .exec()
             .await?;
