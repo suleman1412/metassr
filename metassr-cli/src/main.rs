@@ -44,9 +44,7 @@ async fn main() -> Result<()> {
             .init();
         let project_root = Path::new(&args.root);
 
-        set_current_dir(project_root)
-            .map_err(|err| eprintln!("Cannot chdir: {err}"))
-            .unwrap();
+        set_current_dir(project_root)?;
 
         if allow_metacall_debug {
             set_var("METACALL_DEBUG", "1");
