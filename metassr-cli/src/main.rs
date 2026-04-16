@@ -17,6 +17,15 @@ use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
+pub fn build_filter_string(debug_mode: Option<DebugMode>) -> String {
+    let level = match debug_mode {
+        Some(DebugMode::All) => "debug",
+        Some(DebugMode::Http) => "http=debug,info",
+        _ => "info",
+    };
+    level.to_string()
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
@@ -25,11 +34,7 @@ async fn main() -> Result<()> {
         [Some(DebugMode::All), Some(DebugMode::Metacall)].contains(&args.debug_mode);
     let allow_http_debug = [Some(DebugMode::All), Some(DebugMode::Http)].contains(&args.debug_mode);
 
-    let tracing_level = match args.debug_mode {
-        Some(DebugMode::All) => "debug",
-        Some(DebugMode::Http) => "http=debug,info",
-        _ => "info",
-    };
+    let tracing_level = build_filter_string(args.debug_mode);
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
         EnvFilter::new(tracing_level).add_directive("notify=off".parse().unwrap())
     });
