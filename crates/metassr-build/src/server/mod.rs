@@ -113,3 +113,134 @@ impl Build for ServerSideBuilder {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn scaffold_project(root: &Path) {
+        let src = root.join("src");
+        let pages = src.join("pages");
+        fs::create_dir_all(&pages).unwrap();
+
+        fs::write(
+            src.join("_app.tsx"),
+            "export default function App({ Component }) { return <Component /> }",
+        )
+        .unwrap();
+        fs::write(
+            src.join("_head.tsx"),
+            "export default function Head() { return <title>Test</title> }",
+        )
+        .unwrap();
+        fs::write(
+            pages.join("index.tsx"),
+            "export default function Index() { return <h1>Home</h1> }",
+        )
+        .unwrap();
+    }
+
+    fn scaffold_project_with_pages(root: &Path, pages: Vec<(&str, &str)>) {
+        scaffold_project(root); // Creates base structure + default index.tsx
+
+        let pages_dir = root.join("src/pages");
+        for (name, content) in pages {
+            let page_path = if name.contains('/') {
+                let parts: Vec<_> = name.split('/').collect();
+                let subdir = pages_dir.join(parts[0]);
+                fs::create_dir_all(&subdir).unwrap();
+                subdir.join(parts[1])
+            } else {
+                pages_dir.join(name)
+            };
+            fs::write(&page_path, content).unwrap();
+        }
+    }
+
+    #[test]
+    fn build_all_pages_by_default() {
+        let tmp = TempDir::new().unwrap();
+        scaffold_project_with_pages(
+            tmp.path(),
+            vec![
+                (
+                    "index.tsx",
+                    "export default function Index() { return <h1>Home</h1> }",
+                ),
+                (
+                    "about.tsx",
+                    "export default function About() { return <p>About</p> }",
+                ),
+            ],
+        );
+
+        let builder =
+            ServerSideBuilder::new(tmp.path(), "dist", BuildingType::ServerSideRendering).unwrap();
+        let src = SourceDir::new(&builder.src_path).analyze().unwrap();
+        let all_pages = src.clone().pages;
+
+        let pages = filter_target_pages(&builder.target_pages, all_pages).unwrap();
+
+        assert_eq!(pages.len(), 2, "expected 2 pages when no target filter");
+    }
+
+    #[test]
+    fn build_only_target_pages() {
+        let tmp = TempDir::new().unwrap();
+        scaffold_project_with_pages(
+            tmp.path(),
+            vec![
+                (
+                    "index.tsx",
+                    "export default function Index() { return <h1>Home</h1> }",
+                ),
+                (
+                    "about.tsx",
+                    "export default function About() { return <p>About</p> }",
+                ),
+            ],
+        );
+
+        let builder = ServerSideBuilder::new(tmp.path(), "dist", BuildingType::ServerSideRendering)
+            .unwrap()
+            .with_target_pages(vec!["index.tsx".to_string()]);
+
+        let src = SourceDir::new(&builder.src_path).analyze().unwrap();
+        let all_pages = src.clone().pages;
+
+        let pages = filter_target_pages(&builder.target_pages, all_pages).unwrap();
+
+        assert_eq!(pages.len(), 1, "expected 1 page when filtered");
+        assert!(pages.contains_key("index.tsx"));
+    }
+
+    #[test]
+    fn error_on_missing_target_page() {
+        let tmp = TempDir::new().unwrap();
+        scaffold_project_with_pages(
+            tmp.path(),
+            vec![(
+                "index.tsx",
+                "export default function Index() { return <h1>Home</h1> }",
+            )],
+        );
+
+        let builder = ServerSideBuilder::new(tmp.path(), "dist", BuildingType::ServerSideRendering)
+            .unwrap()
+            .with_target_pages(vec!["nonexistent.tsx".to_string()]);
+
+        let src = SourceDir::new(&builder.src_path).analyze().unwrap();
+        let all_pages = src.clone().pages;
+
+        let result = filter_target_pages(&builder.target_pages, all_pages);
+
+        assert!(result.is_err(), "expected error for missing target page");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("nonexistent.tsx"),
+            "error should mention the missing page"
+        );
+    }
+}
