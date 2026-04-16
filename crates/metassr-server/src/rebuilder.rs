@@ -194,9 +194,9 @@ impl Rebuilder {
 
     fn page_path_to_route(&self, page_path: &Path) -> Result<String> {
         let path_str = to_js_path(page_path);
-        
+
         // Strip "src/pages/" prefix
-        match path_str.split("src/pages/").nth(1){
+        match path_str.split("src/pages/").nth(1) {
             Some(route) => Ok(route.to_string()),
             None => Err(anyhow!(
                 "Path {:?} does not contain 'src/pages/' prefix",

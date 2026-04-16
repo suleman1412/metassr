@@ -309,7 +309,7 @@ mod tests {
         let src = SourceDir::new(&builder.src_path).analyze().unwrap();
 
         let all_pages = src.pages();
-        let pages= filter_target_pages(&builder.target_pages, all_pages).unwrap();
+        let pages = filter_target_pages(&builder.target_pages, all_pages).unwrap();
 
         let (special_entries::App(app_path), _) = src.specials().unwrap();
 
