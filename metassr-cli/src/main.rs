@@ -99,3 +99,40 @@ async fn main() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_flags_defaults_to_info() {
+        assert_eq!(build_filter_string(None), "info");
+    }
+
+    #[test]
+    fn http_flag_sets_http_debug() {
+        assert_eq!(
+            build_filter_string(Some(DebugMode::Http)),
+            "http=debug,info"
+        );
+    }
+
+    #[test]
+    fn all_flag_sets_global_debug() {
+        assert_eq!(
+            build_filter_string(Some(DebugMode::All)),
+            "debug"
+        );
+    }
+
+    #[test]
+    fn rust_log_env_overrides_cli() {
+        std::env::set_var("RUST_LOG", "debug");
+        let result = EnvFilter::try_from_default_env().unwrap_or_else( |_| 
+            EnvFilter::new(build_filter_string(Some(DebugMode::Http)))
+        );
+        std::env::remove_var("RUST_LOG");
+        // assert that RUST_LOG overrides the cli flag
+        assert_eq!(format!("{result}"), "debug");
+    }
+}
