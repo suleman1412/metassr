@@ -6,7 +6,7 @@ mod render;
 mod render_exec;
 mod targets;
 
-use crate::traits::Build;
+use crate::{traits::Build, utils::filter_target_pages};
 use manifest::ManifestGenerator;
 
 use metassr_bundler::WebBundler;
@@ -39,6 +39,7 @@ pub struct ServerSideBuilder {
     src_path: PathBuf,
     dist_path: PathBuf,
     building_type: BuildingType,
+    target_pages: Option<Vec<String>>,
 }
 
 impl ServerSideBuilder {
@@ -60,7 +61,13 @@ impl ServerSideBuilder {
             src_path,
             dist_path,
             building_type,
+            target_pages: None,
         })
+    }
+
+    pub fn with_target_pages(mut self, pages: Vec<String>) -> Self {
+        self.target_pages = Some(pages);
+        self
     }
 }
 // TODO: refactoring build function
@@ -70,7 +77,8 @@ impl Build for ServerSideBuilder {
         let mut cache_dir = CacheDir::new(&format!("{}/cache", self.dist_path.display()))?;
 
         let src = SourceDir::new(&self.src_path).analyze()?;
-        let pages = src.clone().pages;
+        let all_pages = src.clone().pages;
+        let pages = filter_target_pages(&self.target_pages, all_pages).unwrap();
         let (special_entries::App(app), special_entries::Head(head)) = src.specials()?;
 
         let targets = match TargetsGenerator::new(app, pages, &mut cache_dir).generate() {
