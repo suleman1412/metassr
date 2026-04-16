@@ -226,4 +226,137 @@ mod tests {
             }
         }
     }
+
+    fn scaffold_project_with_pages(root: &Path, pages: Vec<(&str, &str)>) {
+        scaffold_project(root);
+
+        let pages_dir = root.join("src/pages");
+        for (name, content) in pages {
+            let page_path = if name.contains('/') {
+                let parts: Vec<_> = name.split('/').collect();
+                let subdir = pages_dir.join(parts[0]);
+                fs::create_dir_all(&subdir).unwrap();
+                subdir.join(parts[1])
+            } else {
+                pages_dir.join(name)
+            };
+            fs::write(&page_path, content).unwrap();
+        }
+    }
+
+    #[test]
+    fn build_all_pages_by_default() {
+        let tmp = TempDir::new().unwrap();
+        scaffold_project_with_pages(
+            tmp.path(),
+            vec![
+                (
+                    "index.tsx",
+                    "export default function Index() { return <h1>Home</h1> }",
+                ),
+                (
+                    "about.tsx",
+                    "export default function About() { return <p>About</p> }",
+                ),
+            ],
+        );
+
+        let builder = ClientBuilder::new(tmp.path(), "dist").unwrap();
+        let mut cache_dir =
+            CacheDir::new(&format!("{}/cache", builder.dist_path.display())).unwrap();
+        let src = SourceDir::new(&builder.src_path).analyze().unwrap();
+
+        let all_pages = src.pages();
+        let (special_entries::App(app_path), _) = src.specials().unwrap();
+
+        for (page, page_path) in all_pages.iter() {
+            let hydrator = Hydrator::new(&app_path, page_path, "root")
+                .generate()
+                .unwrap();
+            let page = setup_page_path(page, "js");
+            cache_dir
+                .insert(&format!("pages/{}", page.display()), hydrator.as_bytes())
+                .unwrap();
+        }
+
+        let entries = cache_dir.entries_in_scope();
+        assert_eq!(entries.len(), 2, "expected 2 cache entries for all pages");
+    }
+
+    #[test]
+    fn build_only_target_pages() {
+        let tmp = TempDir::new().unwrap();
+        scaffold_project_with_pages(
+            tmp.path(),
+            vec![
+                (
+                    "index.tsx",
+                    "export default function Index() { return <h1>Home</h1> }",
+                ),
+                (
+                    "about.tsx",
+                    "export default function About() { return <p>About</p> }",
+                ),
+            ],
+        );
+
+        let builder = ClientBuilder::new(tmp.path(), "dist")
+            .unwrap()
+            .with_target_pages(vec!["index.tsx".to_string()]);
+
+        let mut cache_dir =
+            CacheDir::new(&format!("{}/cache", builder.dist_path.display())).unwrap();
+        let src = SourceDir::new(&builder.src_path).analyze().unwrap();
+
+        let all_pages = src.pages();
+        let pages= filter_target_pages(&builder.target_pages, all_pages).unwrap();
+
+        let (special_entries::App(app_path), _) = src.specials().unwrap();
+
+        for (page, page_path) in pages.iter() {
+            let hydrator = Hydrator::new(&app_path, page_path, "root")
+                .generate()
+                .unwrap();
+            let page = setup_page_path(page, "js");
+            cache_dir
+                .insert(&format!("pages/{}", page.display()), hydrator.as_bytes())
+                .unwrap();
+        }
+
+        let entries = cache_dir.entries_in_scope();
+        assert_eq!(
+            entries.len(),
+            1,
+            "expected 1 cache entry for target page only"
+        );
+        assert!(entries.keys().any(|k| k.contains("index")));
+    }
+
+    #[test]
+    fn error_on_missing_target_page() {
+        let tmp = TempDir::new().unwrap();
+        scaffold_project_with_pages(
+            tmp.path(),
+            vec![(
+                "index.tsx",
+                "export default function Index() { return <h1>Home</h1> }",
+            )],
+        );
+
+        let builder = ClientBuilder::new(tmp.path(), "dist")
+            .unwrap()
+            .with_target_pages(vec!["nonexistent.tsx".to_string()]);
+
+        let src = SourceDir::new(&builder.src_path).analyze().unwrap();
+        let all_pages = src.pages();
+
+        let pages = filter_target_pages(&builder.target_pages, all_pages);
+
+        assert!(pages.is_err(), "expected error for missing target page");
+        let err_msg = pages.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("nonexistent.tsx"),
+            "error should mention the missing page"
+        );
+    }
 }
