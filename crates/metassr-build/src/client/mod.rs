@@ -1,5 +1,5 @@
 use crate::traits::{Build, Generate};
-use crate::utils::setup_page_path;
+use crate::utils::{filter_target_pages, setup_page_path};
 use anyhow::{anyhow, Result};
 use dunce;
 use hydrator::Hydrator;
@@ -23,6 +23,7 @@ pub mod hydrator;
 pub struct ClientBuilder {
     src_path: PathBuf,
     dist_path: PathBuf,
+    target_pages: Option<Vec<String>>,
 }
 
 impl ClientBuilder {
@@ -43,7 +44,13 @@ impl ClientBuilder {
         Ok(Self {
             src_path,
             dist_path,
+            target_pages: None,
         })
+    }
+
+    pub fn with_target_pages(mut self, pages: Vec<String>) -> Self {
+        self.target_pages = Some(pages);
+        self
     }
 }
 
@@ -53,7 +60,9 @@ impl Build for ClientBuilder {
         let mut cache_dir = CacheDir::new(&format!("{}/cache", self.dist_path.display()))?;
         let src = SourceDir::new(&self.src_path).analyze()?;
 
-        let pages = src.pages();
+        let all_pages = src.pages();
+        let pages = filter_target_pages(&self.target_pages, all_pages).unwrap();
+
         let (special_entries::App(app_path), _) = src.specials()?;
 
         for (page, page_path) in pages.iter() {
