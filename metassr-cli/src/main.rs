@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
 
     let tracing_level = build_filter_string(args.debug_mode);
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        EnvFilter::new(tracing_level).add_directive("notify=off".parse().unwrap())
+        EnvFilter::new(&tracing_level).add_directive("notify=off".parse().unwrap())
     });
     if let Commands::Create { .. } = args.commands {
         tracing_subscriber::fmt()
