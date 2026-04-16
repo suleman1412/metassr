@@ -22,6 +22,8 @@ use std::time::Instant;
 use notify_debouncer_full::DebouncedEvent;
 
 use tracing::{debug, error, warn};
+
+use metassr_utils::js_path::to_js_path;
 struct RebuildGuard<'a> {
     flag: &'a AtomicBool,
 }
@@ -190,10 +192,25 @@ impl Rebuilder {
         Ok(())
     }
 
+    fn page_path_to_route(&self, page_path: &Path) -> Result<String> {
+        let path_str = to_js_path(page_path);
+        
+        // Strip "src/pages/" prefix
+        match path_str.split("src/pages/").nth(1){
+            Some(route) => Ok(route.to_string()),
+            None => Err(anyhow!(
+                "Path {:?} does not contain 'src/pages/' prefix",
+                page_path
+            )),
+        }
+    }
+
     fn rebuild_page(&self, path: PathBuf) -> Result<()> {
         debug!("Rebuilding page {:?}", path);
 
-        debug!("Rebuilding page Rel path: {:?} Rebuilding page ", path);
+        let route = self.page_path_to_route(&path)?;
+        let target_pages = vec![route];
+        debug!("Rebuilding page with route: {:?}", target_pages);
 
         // Build client-side bundle
         {
@@ -204,6 +221,7 @@ impl Rebuilder {
                     .to_str()
                     .ok_or_else(|| anyhow!("couldn't find out dir path"))?,
             )?
+            .with_target_pages(target_pages.clone())
             .build();
 
             if let Err(e) = client_builder {
@@ -231,7 +249,8 @@ impl Rebuilder {
                     .to_str()
                     .ok_or_else(|| anyhow!("Invalid output path"))?,
                 self.building_type,
-            )?;
+            )?
+            .with_target_pages(target_pages);
 
             if let Err(e) = server_builder.build() {
                 error!(
