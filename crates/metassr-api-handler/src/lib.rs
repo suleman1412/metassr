@@ -43,7 +43,7 @@ use std::{
     collections::HashMap,
     fs::read_to_string,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 use tracing::{debug, error, info, warn};
 use types::{ApiRequest, ApiResponse};
@@ -170,7 +170,7 @@ impl Default for ApiRoutes {
 pub fn register_api_routes(
     mut router: Router,
     root_path: &Path,
-) -> Result<(Router, Option<Arc<std::sync::Mutex<ApiRoutes>>>)> {
+) -> Result<(Router, Option<Arc<Mutex<ApiRoutes>>>)> {
     let api_dir = root_path.join("src").join("api");
 
     if !api_dir.exists() {
@@ -188,7 +188,7 @@ pub fn register_api_routes(
         return Ok((router, None));
     }
 
-    let api_routes = Arc::new(std::sync::Mutex::new(api_routes));
+    let api_routes = Arc::new(Mutex::new(api_routes));
 
     // Clone routes info before moving api_routes
     let routes_info: Vec<_> = api_routes
@@ -262,7 +262,7 @@ pub fn register_api_routes(
 
 /// Handle an incoming API request.
 fn handle_api_request(
-    api_routes: Arc<std::sync::Mutex<ApiRoutes>>,
+    api_routes: Arc<Mutex<ApiRoutes>>,
     headers: HeaderMap,
     method: Method,
     query: HashMap<String, String>,
