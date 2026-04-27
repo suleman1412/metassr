@@ -118,17 +118,9 @@ impl ApiRoutes {
 
         // Dropping the entry calls metacall_clear, unregistering the old symbols.
         self.loaded_scripts.remove(&path_str);
+        let loaded = self.load_script(file_path);
 
-        let code = read_to_string(file_path)?;
-        let mut handle = load::Handle::new();
-
-        load::from_memory(load::Tag::NodeJS, &code, Some(&mut handle))
-            .map_err(|e| anyhow!("Failed to reload script {:?}: {:?}", file_path, e))?;
-
-        self.loaded_scripts
-            .insert(path_str, (file_path.to_path_buf(), ScriptHandle(handle)));
-
-        info!("Reloaded API script: {:?}", file_path);
+        info!("Reloaded API script: {:?}: {}", file_path, loaded.is_ok());
         Ok(())
     }
 
