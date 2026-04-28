@@ -118,9 +118,9 @@ impl ApiRoutes {
 
         // Dropping the entry calls metacall_clear, unregistering the old symbols.
         self.loaded_scripts.remove(&path_str);
-        let loaded = self.load_script(file_path);
+        self.load_script(file_path)?;
 
-        info!("Reloaded API script: {:?}: {}", file_path, loaded.is_ok());
+        info!("Reloaded API script: {:?}", file_path);
         Ok(())
     }
 
